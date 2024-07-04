@@ -11,7 +11,7 @@ namespace nebula
 namespace drivers
 {
 /// @brief struct for Innovusion sensor configuration
-struct InnovusionSensorConfiguration : SensorConfigurationBase
+struct InnovusionSensorConfiguration : LidarConfigurationBase
 {
   double cloud_min_range;
   double cloud_max_range;
@@ -22,7 +22,7 @@ struct InnovusionSensorConfiguration : SensorConfigurationBase
 /// @return stream
 inline std::ostream & operator<<(std::ostream & os, InnovusionSensorConfiguration const & arg)
 {
-  os << (SensorConfigurationBase)(arg) << ", cloud_min_range: " << arg.cloud_min_range
+  os << (LidarConfigurationBase)(arg) << ", cloud_min_range: " << arg.cloud_min_range
      << ", cloud_max_range: " << arg.cloud_max_range << "\n";
   return os;
 }

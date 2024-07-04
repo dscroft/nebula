@@ -28,7 +28,7 @@ Status InnovusionHwInterface::SetSensorConfiguration(
   return Status::OK;
 }
 
-Status InnovusionHwInterface::CloudInterfaceStart()
+Status InnovusionHwInterface::SensorInterfaceStart()
 {
   try {
     InitHttpClientDriver();
@@ -39,7 +39,7 @@ Status InnovusionHwInterface::CloudInterfaceStart()
     cloud_udp_driver_->receiver()->open();
     cloud_udp_driver_->receiver()->bind();
     cloud_udp_driver_->receiver()->asyncReceive(
-      std::bind(&InnovusionHwInterface::ReceiveCloudPacketCallback, this, std::placeholders::_1));
+      std::bind(&InnovusionHwInterface::ReceiveSensorPacketCallback, this, std::placeholders::_1));
   } catch (const std::exception & ex) {
     Status status = Status::UDP_CONNECTION_ERROR;
     std::cerr << status << sensor_configuration_->sensor_ip << ","
@@ -89,7 +89,7 @@ void InnovusionHwInterface::ProtocolCompatibility(std::vector<uint8_t> & buffer)
   }
 }
 
-void InnovusionHwInterface::ReceiveCloudPacketCallback(const std::vector<uint8_t> & buffer)
+void InnovusionHwInterface::ReceiveSensorPacketCallback(const std::vector<uint8_t> & buffer)
 {
   std::vector<uint8_t> buffer_copy = buffer;
   if (!IsPacketValid(buffer_copy)) {
@@ -130,7 +130,7 @@ void InnovusionHwInterface::ReceiveCloudPacketCallback(const std::vector<uint8_t
   ++scan_cloud_ptr_->size;
 }
 
-Status InnovusionHwInterface::CloudInterfaceStop() { return Status::ERROR_1; }
+Status InnovusionHwInterface::SensorInterfaceStop() { return Status::ERROR_1; }
 
 Status InnovusionHwInterface::GetSensorConfiguration(SensorConfigurationBase & sensor_configuration)
 {
