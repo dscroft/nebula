@@ -15,20 +15,36 @@ from launch_ros.descriptions import ComposableNode
 import yaml
 
 
-def get_lidar_make(sensor_name):
+def get_sensor_make(sensor_name):
     if sensor_name[:6].lower() == "pandar":
         return "Hesai", ".csv"
     elif sensor_name[:3].lower() in ["hdl", "vlp", "vls"]:
         return "Velodyne", ".yaml"
     elif sensor_name[:3].lower() in ["fal", "rob"]:
         return "Innovusion", ".yaml"
-    return "unrecognized_sensor_model"
+    elif sensor_name.lower() in ["helios", "bpearl"]:
+        return "Robosense", None
+    elif sensor_name.lower() == "ars548":
+        return "Continental", None
+    return "unrecognized_sensor_model", None
 
+def get_plugin_name(sensor_make, sensor_model):
+    if sensor_make.lower() != "continental":
+        return sensor_make
+    elif sensor_model.lower() == "ars548":
+        return "ContinentalARS548"
+    else:
+        return "invalid_plugin"
+
+def is_hw_monitor_available(sensor_make):
+    return sensor_make.lower() != "continental"
 
 def launch_setup(context, *args, **kwargs):
     # Model and make
     sensor_model = LaunchConfiguration("sensor_model").perform(context)
-    sensor_make, sensor_extension = get_lidar_make(sensor_model)
+    calibration_file = LaunchConfiguration("calibration_file").perform(context)
+    correction_file = LaunchConfiguration("correction_file").perform(context)
+    sensor_make, sensor_extension = get_sensor_make(sensor_model)
     nebula_decoders_share_dir = get_package_share_directory("nebula_decoders")
     nebula_ros_share_dir = get_package_share_directory("nebula_ros")
 
@@ -37,20 +53,31 @@ def launch_setup(context, *args, **kwargs):
     if sensor_params_fp == "":
         warnings.warn("No config file provided, using sensor model default", RuntimeWarning)
         sensor_params_fp = os.path.join(nebula_ros_share_dir, "config", sensor_make.lower(), sensor_model + ".yaml")
-    sensor_calib_fp = os.path.join(nebula_decoders_share_dir, "calibration", sensor_make.lower(), sensor_model + sensor_extension)
+
     if not os.path.exists(sensor_params_fp):
         sensor_params_fp = os.path.join(nebula_ros_share_dir, "config", "BaseParams.yaml")
     assert os.path.exists(sensor_params_fp), "Sensor params yaml file under config/ was not found: {}".format(sensor_params_fp)
-    assert os.path.exists(sensor_calib_fp), "Sensor calib file under calibration/ was not found: {}".format(sensor_calib_fp)
+
+    sensor_calib_fp = sensor_corr_fp = ""
+    if sensor_extension is not None:  # Velodyne and Hesai
+        sensor_calib_fp = os.path.join(nebula_decoders_share_dir, "calibration", sensor_make.lower(), sensor_model + sensor_extension)
+        assert os.path.exists(sensor_calib_fp), "Sensor calib file under calibration/ was not found: {}".format(sensor_calib_fp)
+
+        if sensor_model.lower() == "pandarat128":
+            sensor_corr_fp = os.path.splitext(sensor_calib_fp)[0] + ".dat"
+            assert os.path.exists(sensor_corr_fp), "Sensor corr file under calibration/ was not found: {}".format(sensor_corr_fp)
+
     with open(sensor_params_fp, "r") as f:
             sensor_params = yaml.safe_load(f)["/**"]["ros__parameters"]
     nodes = []
-    if LaunchConfiguration("launch_hw").perform(context) == "true":
+    launch_hw = LaunchConfiguration("launch_hw").perform(context) == "true"
+
+    if launch_hw:
         nodes.append(
             # HwInterface
             ComposableNode(
                 package="nebula_ros",
-                plugin=sensor_make+"HwInterfaceRosWrapper",
+                plugin=get_plugin_name(sensor_make, sensor_model)+"HwInterfaceRosWrapper",
                 name=sensor_make.lower()+"_hw_interface_ros_wrapper_node",
                 parameters=[
                     sensor_params,
@@ -58,12 +85,20 @@ def launch_setup(context, *args, **kwargs):
                         "sensor_model": LaunchConfiguration("sensor_model"),
                         "sensor_ip": LaunchConfiguration("sensor_ip"),
                         "return_mode": LaunchConfiguration("return_mode"),
-                        "calibration_file": sensor_calib_fp,
+                        "calibration_file": calibration_file or sensor_calib_fp,
+                        "correction_file": correction_file or sensor_corr_fp,
                         "setup_sensor": LaunchConfiguration("setup_sensor"),
+                        "ptp_profile": LaunchConfiguration("ptp_profile"),
+                        "ptp_domain": LaunchConfiguration("ptp_domain"),
+                        "ptp_transport_type": LaunchConfiguration("ptp_transport_type"),
+                        "ptp_switch_type": LaunchConfiguration("ptp_switch_type"),
                     },
                 ],
             ),
         )
+
+
+    if launch_hw and is_hw_monitor_available(sensor_make):
         nodes.append(
             # HwMonitor
             ComposableNode(
@@ -76,7 +111,8 @@ def launch_setup(context, *args, **kwargs):
                         "sensor_model": sensor_model,
                         "sensor_ip": LaunchConfiguration("sensor_ip"),
                         "return_mode": LaunchConfiguration("return_mode"),
-                        "calibration_file": sensor_calib_fp,
+                        "calibration_file": calibration_file or sensor_calib_fp,
+                        "correction_file": correction_file or sensor_corr_fp,
                     },
                 ],
             )
@@ -84,7 +120,7 @@ def launch_setup(context, *args, **kwargs):
     nodes.append(
         ComposableNode(
             package="nebula_ros",
-            plugin=sensor_make+"DriverRosWrapper",
+            plugin=get_plugin_name(sensor_make, sensor_model)+"DriverRosWrapper",
             name=sensor_make.lower()+"_driver_ros_wrapper_node",
             parameters=[
                 sensor_params,
@@ -92,7 +128,13 @@ def launch_setup(context, *args, **kwargs):
                     "sensor_model": sensor_model,
                     "sensor_ip": LaunchConfiguration("sensor_ip"),
                     "return_mode": LaunchConfiguration("return_mode"),
-                    "calibration_file": sensor_calib_fp,
+                    "calibration_file": calibration_file or sensor_calib_fp,
+                    "correction_file": correction_file or sensor_corr_fp,
+                    "launch_hw": LaunchConfiguration("launch_hw"),
+                    "ptp_profile": LaunchConfiguration("ptp_profile"),
+                    "ptp_domain": LaunchConfiguration("ptp_domain"),
+                    "ptp_transport_type": LaunchConfiguration("ptp_transport_type"),
+                    "ptp_switch_type": LaunchConfiguration("ptp_switch_type"),
                 },
             ],
         ),
@@ -107,6 +149,7 @@ def launch_setup(context, *args, **kwargs):
     container_kwargs = {}
     if LaunchConfiguration("debug_logging").perform(context) == "true":
         container_kwargs["ros_arguments"] = ['--log-level', 'debug']
+
 
     container = ComposableNodeContainer(
         name="nebula_ros_node",
@@ -139,10 +182,16 @@ def generate_launch_description():
             add_launch_arg("config_file", ""),
             add_launch_arg("sensor_model", ""),
             add_launch_arg("sensor_ip", "192.168.1.201"),
+            add_launch_arg("calibration_file", ""),
+            add_launch_arg("correction_file", ""),
             add_launch_arg("return_mode", "Dual"),
             add_launch_arg("launch_hw", "true"),
             add_launch_arg("setup_sensor", "true"),
             add_launch_arg("debug_logging", "false"),
+            add_launch_arg("ptp_profile", "1588v2"),
+            add_launch_arg("ptp_domain", "0"),
+            add_launch_arg("ptp_transport_type", "UDP"),
+            add_launch_arg("ptp_switch_type", "TSN"),
         ]
         + [OpaqueFunction(function=launch_setup)]
     )

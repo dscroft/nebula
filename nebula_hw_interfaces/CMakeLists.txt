@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 project(nebula_hw_interfaces)
 
 find_package(ament_cmake_auto REQUIRED)
 find_package(PCL REQUIRED)
 find_package(PCL REQUIRED COMPONENTS common)
 find_package(pcl_conversions REQUIRED)
+find_package(robosense_msgs REQUIRED)
 
 ament_auto_find_build_dependencies()
 
@@ -19,6 +20,7 @@ endif ()
 
 include_directories(
         include
+        SYSTEM
         ${YAML_CPP_INCLUDE_DIRS}
         ${PCL_INCLUDE_DIRS}
         ${PCL_COMMON_INCLUDE_DIRS}
@@ -35,6 +37,16 @@ ament_auto_add_library(nebula_hw_interfaces_velodyne SHARED
 ament_auto_add_library(nebula_hw_interfaces_innovusion SHARED
         src/nebula_innovusion_hw_interfaces/innovusion_hw_interface.cpp
         )
+
+ament_auto_add_library(nebula_hw_interfaces_robosense SHARED
+        src/nebula_robosense_hw_interfaces/robosense_hw_interface.cpp
+        )
+
+ament_auto_add_library(nebula_hw_interfaces_continental SHARED
+        src/nebula_continental_hw_interfaces/continental_ars548_hw_interface.cpp
+        src/nebula_continental_hw_interfaces/multi_continental_ars548_hw_interface.cpp
+        )
+
 
 if(BUILD_TESTING)
     find_package(ament_lint_auto REQUIRED)

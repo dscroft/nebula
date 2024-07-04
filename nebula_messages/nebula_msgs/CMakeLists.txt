@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(velodyne_msgs)
+project(nebula_msgs)
 
 if (NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 14)
@@ -15,8 +15,8 @@ find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-        "msg/VelodynePacket.msg"
-        "msg/VelodyneScan.msg"
+        "msg/NebulaPacket.msg"
+        "msg/NebulaPackets.msg"
         DEPENDENCIES
         std_msgs
         )

@@ -10,8 +10,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 
-#include "velodyne_msgs/msg/velodyne_packet.hpp"
-#include "velodyne_msgs/msg/velodyne_scan.hpp"
+#include <velodyne_msgs/msg/velodyne_packet.hpp>
+#include <velodyne_msgs/msg/velodyne_scan.hpp>
 
 #include <curl/curl.h>
 
@@ -64,7 +64,7 @@ class VelodyneHwInterfaceRosWrapper final : public rclcpp::Node, NebulaHwInterfa
 
 public:
   explicit VelodyneHwInterfaceRosWrapper(const rclcpp::NodeOptions & options);
-  /// @brief Start point cloud streaming (Call CloudInterfaceStart of HwInterface)
+  /// @brief Start point cloud streaming (Call SensorInterfaceStart of HwInterface)
   /// @return Resulting status
   Status StreamStart() override;
   /// @brief Stop point cloud streaming (not used)

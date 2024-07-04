@@ -29,12 +29,14 @@ Status VelodyneHwInterface::InitializeSensorConfiguration(
 Status VelodyneHwInterface::SetSensorConfiguration(
   std::shared_ptr<SensorConfigurationBase> sensor_configuration)
 {
-  VelodyneStatus status = CheckAndSetConfigBySnapshotAsync();
+  auto velodyne_sensor_configuration =
+    std::static_pointer_cast<VelodyneSensorConfiguration>(sensor_configuration);
+  VelodyneStatus status = CheckAndSetConfigBySnapshotAsync(velodyne_sensor_configuration);
   Status rt = status;
   return rt;
 }
 
-Status VelodyneHwInterface::CloudInterfaceStart()
+Status VelodyneHwInterface::SensorInterfaceStart()
 {
   try {
     cloud_udp_driver_->init_receiver(
@@ -42,7 +44,7 @@ Status VelodyneHwInterface::CloudInterfaceStart()
     cloud_udp_driver_->receiver()->open();
     cloud_udp_driver_->receiver()->bind();
     cloud_udp_driver_->receiver()->asyncReceive(
-      std::bind(&VelodyneHwInterface::ReceiveCloudPacketCallback, this, std::placeholders::_1));
+      std::bind(&VelodyneHwInterface::ReceiveSensorPacketCallback, this, std::placeholders::_1));
   } catch (const std::exception & ex) {
     Status status = Status::UDP_CONNECTION_ERROR;
     std::cerr << status << sensor_configuration_->sensor_ip << ","
@@ -59,21 +61,18 @@ Status VelodyneHwInterface::RegisterScanCallback(
   return Status::OK;
 }
 
-void VelodyneHwInterface::ReceiveCloudPacketCallback(const std::vector<uint8_t> & buffer)
+void VelodyneHwInterface::ReceiveSensorPacketCallback(const std::vector<uint8_t> & buffer)
 {
   // Process current packet
-  uint32_t buffer_size = buffer.size();
-  std::array<uint8_t, 1206> packet_data{};
-  std::copy_n(std::make_move_iterator(buffer.begin()), buffer_size, packet_data.begin());
+  const uint32_t buffer_size = buffer.size();
   velodyne_msgs::msg::VelodynePacket velodyne_packet;
+  std::copy_n(std::make_move_iterator(buffer.begin()), buffer_size, velodyne_packet.data.begin());
   auto now = std::chrono::system_clock::now();
   auto now_secs = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
   auto now_nanosecs =
     std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
-  velodyne_packet.data = packet_data;
   velodyne_packet.stamp.sec = static_cast<int>(now_secs);
-  velodyne_packet.stamp.nanosec =
-    static_cast<int>((now_nanosecs / 1000000000. - static_cast<double>(now_secs)) * 1000000000);
+  velodyne_packet.stamp.nanosec = static_cast<std::uint32_t>(now_nanosecs % 1'000'000'000);
   scan_cloud_ptr_->packets.emplace_back(velodyne_packet);
   processed_packets_++;
 
@@ -100,7 +99,10 @@ void VelodyneHwInterface::ReceiveCloudPacketCallback(const std::vector<uint8_t> 
   }
   prev_packet_first_azm_phased_ = packet_first_azm_phased_;
 }
-Status VelodyneHwInterface::CloudInterfaceStop() { return Status::ERROR_1; }
+Status VelodyneHwInterface::SensorInterfaceStop()
+{
+  return Status::ERROR_1;
+}
 
 Status VelodyneHwInterface::GetSensorConfiguration(SensorConfigurationBase & sensor_configuration)
 {
@@ -223,8 +225,7 @@ VelodyneStatus VelodyneHwInterface::CheckAndSetConfig(
     SetFovStartAsync(setting_cloud_min_angle);
     std::cout << "VelodyneHwInterface::parse_json(" << target_key
               << "): " << current_cloud_min_angle << std::endl;
-    std::cout << "sensor_configuration->cloud_min_angle: " << setting_cloud_min_angle
-              << std::endl;
+    std::cout << "sensor_configuration->cloud_min_angle: " << setting_cloud_min_angle << std::endl;
   }
 
   target_key = "config.fov.end";
@@ -238,8 +239,7 @@ VelodyneStatus VelodyneHwInterface::CheckAndSetConfig(
     SetFovEndAsync(setting_cloud_max_angle);
     std::cout << "VelodyneHwInterface::parse_json(" << target_key
               << "): " << current_cloud_max_angle << std::endl;
-    std::cout << "sensor_configuration->cloud_max_angle: " << setting_cloud_max_angle
-              << std::endl;
+    std::cout << "sensor_configuration->cloud_max_angle: " << setting_cloud_max_angle << std::endl;
   }
 
   target_key = "config.host.addr";
@@ -522,8 +522,11 @@ VelodyneStatus VelodyneHwInterface::GetSnapshotAsync()
   return GetSnapshotAsync([this](const std::string & str) { ParseJson(str); });
 }
 
-VelodyneStatus VelodyneHwInterface::CheckAndSetConfigBySnapshotAsync()
+VelodyneStatus VelodyneHwInterface::CheckAndSetConfigBySnapshotAsync(
+  std::shared_ptr<VelodyneSensorConfiguration> sensor_configuration)
 {
+  sensor_configuration_ = sensor_configuration;
+
   return GetSnapshotAsync([this](const std::string & str) {
     auto tree = ParseJson(str);
     std::cout << "ParseJson OK\n";

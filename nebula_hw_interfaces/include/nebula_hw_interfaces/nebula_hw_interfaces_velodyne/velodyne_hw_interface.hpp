@@ -11,16 +11,16 @@
 #if (BOOST_VERSION / 100 == 1074)  // Boost 1.74
 #define BOOST_ALLOW_DEPRECATED_HEADERS
 #endif
+#include "boost_tcp_driver/http_client_driver.hpp"
+#include "boost_udp_driver/udp_driver.hpp"
 #include "nebula_common/velodyne/velodyne_common.hpp"
 #include "nebula_common/velodyne/velodyne_status.hpp"
 #include "nebula_hw_interfaces/nebula_hw_interfaces_common/nebula_hw_interface_base.hpp"
-#include "boost_tcp_driver/http_client_driver.hpp"
-#include "boost_udp_driver/udp_driver.hpp"
 
 #include <rclcpp/rclcpp.hpp>
 
-#include "velodyne_msgs/msg/velodyne_packet.hpp"
-#include "velodyne_msgs/msg/velodyne_scan.hpp"
+#include <velodyne_msgs/msg/velodyne_packet.hpp>
+#include <velodyne_msgs/msg/velodyne_scan.hpp>
 
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -106,13 +106,13 @@ public:
 
   /// @brief Callback function to receive the Cloud Packet data from the UDP Driver
   /// @param buffer Buffer containing the data received from the UDP socket
-  void ReceiveCloudPacketCallback(const std::vector<uint8_t> & buffer) final;
+  void ReceiveSensorPacketCallback(const std::vector<uint8_t> & buffer) final;
   /// @brief Starting the interface that handles UDP streams
   /// @return Resulting status
-  Status CloudInterfaceStart() final;
+  Status SensorInterfaceStart() final;
   /// @brief Function for stopping the interface that handles UDP streams
   /// @return Resulting status
-  Status CloudInterfaceStop() final;
+  Status SensorInterfaceStop() final;
   /// @brief Printing sensor configuration
   /// @param sensor_configuration SensorConfiguration for this interface
   /// @return Resulting status
@@ -243,7 +243,8 @@ public:
   VelodyneStatus GetSnapshotAsync();
   /// @brief Checking the current settings and changing the difference point
   /// @return Resulting status
-  VelodyneStatus CheckAndSetConfigBySnapshotAsync();
+  VelodyneStatus CheckAndSetConfigBySnapshotAsync(
+    std::shared_ptr<VelodyneSensorConfiguration> sensor_configuration);
   /// @brief Setting Motor RPM (async)
   /// @param rpm the RPM of the motor
   /// @return Resulting status

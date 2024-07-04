@@ -14,8 +14,6 @@ VelodyneDriver::VelodyneDriver(
 {
   // initialize proper parser from cloud config's model and echo mode
   driver_status_ = nebula::Status::OK;
-  std::cout << "sensor_configuration->sensor_model=" << sensor_configuration->sensor_model
-            << std::endl;
   switch (sensor_configuration->sensor_model) {
     case SensorModel::UNKNOWN:
       driver_status_ = nebula::Status::INVALID_SENSOR_MODEL;
@@ -53,7 +51,8 @@ std::tuple<drivers::NebulaPointCloudPtr, double> VelodyneDriver::ConvertScanToPo
 {
   std::tuple<drivers::NebulaPointCloudPtr, double> pointcloud;
   if (driver_status_ == nebula::Status::OK) {
-    scan_decoder_->reset_pointcloud(velodyne_scan->packets.size());
+    scan_decoder_->reset_pointcloud(
+      velodyne_scan->packets.size(), rclcpp::Time(velodyne_scan->packets.front().stamp).seconds());
     for (auto & packet : velodyne_scan->packets) {
       scan_decoder_->unpack(packet);
     }
@@ -63,7 +62,10 @@ std::tuple<drivers::NebulaPointCloudPtr, double> VelodyneDriver::ConvertScanToPo
   }
   return pointcloud;
 }
-Status VelodyneDriver::GetStatus() { return driver_status_; }
+Status VelodyneDriver::GetStatus()
+{
+  return driver_status_;
+}
 
 }  // namespace drivers
 }  // namespace nebula

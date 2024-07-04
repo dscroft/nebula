@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 project(nebula_ros)
 
 find_package(ament_cmake_auto REQUIRED)
@@ -22,9 +22,11 @@ find_package(nebula_common REQUIRED)
 find_package(nebula_decoders REQUIRED)
 find_package(nebula_hw_interfaces REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(robosense_msgs REQUIRED)
 
 include_directories(
         include
+        SYSTEM
         ${YAML_CPP_INCLUDE_DIRS}
         ${PCL_INCLUDE_DIRS}
         ${PCL_COMMON_INCLUDE_DIRS}
@@ -120,6 +122,64 @@ ament_auto_add_library(innovusion_driver_ros_wrapper SHARED
 rclcpp_components_register_node(innovusion_driver_ros_wrapper
         PLUGIN "InnovusionDriverRosWrapper"
         EXECUTABLE innovusion_driver_ros_wrapper_node
+        )
+
+## Robosense
+# Hw Interface
+ament_auto_add_library(robosense_hw_ros_wrapper SHARED
+        src/robosense/robosense_hw_interface_ros_wrapper.cpp
+        )
+
+rclcpp_components_register_node(robosense_hw_ros_wrapper
+        PLUGIN "RobosenseHwInterfaceRosWrapper"
+        EXECUTABLE robosense_hw_interface_ros_wrapper_node
+        )
+
+# DriverDecoder
+ament_auto_add_library(robosense_driver_ros_wrapper SHARED
+        src/robosense/robosense_decoder_ros_wrapper.cpp
+        )
+
+rclcpp_components_register_node(robosense_driver_ros_wrapper
+        PLUGIN "RobosenseDriverRosWrapper"
+        EXECUTABLE robosense_driver_ros_wrapper_node
+        )
+
+# Monitor
+ament_auto_add_library(robosense_hw_monitor_ros_wrapper SHARED
+        src/robosense/robosense_hw_monitor_ros_wrapper.cpp
+        )
+
+rclcpp_components_register_node(robosense_hw_monitor_ros_wrapper
+        PLUGIN "RobosenseHwMonitorRosWrapper"
+        EXECUTABLE robosense_hw_monitor_ros_wrapper_node
+        )
+
+## Continental
+# Hw Interface
+ament_auto_add_library(continental_ars548_hw_ros_wrapper SHARED
+        src/continental/continental_ars548_hw_interface_ros_wrapper.cpp
+        )
+rclcpp_components_register_node(continental_ars548_hw_ros_wrapper
+        PLUGIN "ContinentalARS548HwInterfaceRosWrapper"
+        EXECUTABLE continental_ars548_hw_interface_ros_wrapper_node
+        )
+
+ament_auto_add_library(multi_continental_ars548_hw_ros_wrapper SHARED
+        src/continental/multi_continental_ars548_hw_interface_ros_wrapper.cpp
+        )
+rclcpp_components_register_node(multi_continental_ars548_hw_ros_wrapper
+        PLUGIN "MultiContinentalARS548HwInterfaceRosWrapper"
+        EXECUTABLE multi_continental_ars548_hw_interface_ros_wrapper_node
+        )
+
+# DriverDecoder
+ament_auto_add_library(continental_ars548_driver_ros_wrapper SHARED
+        src/continental/continental_ars548_decoder_ros_wrapper.cpp
+        )
+rclcpp_components_register_node(continental_ars548_driver_ros_wrapper
+        PLUGIN "ContinentalARS548DriverRosWrapper"
+        EXECUTABLE continental_ars548_driver_ros_wrapper_node
         )
 
 if(BUILD_TESTING)

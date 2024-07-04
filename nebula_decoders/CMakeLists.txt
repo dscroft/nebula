@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 project(nebula_decoders)
 
 find_package(ament_cmake_auto REQUIRED)
@@ -14,13 +14,16 @@ if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wall -Wextra -Wpedantic -Wunused-function)
 endif ()
 
+find_package(angles REQUIRED)
 find_package(PCL REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(nebula_common REQUIRED)
+find_package(robosense_msgs REQUIRED)
 
 include_directories(
         include
+        SYSTEM
         ${YAML_CPP_INCLUDE_DIRS}
         ${PCL_INCLUDE_DIRS}
         ${PCL_COMMON_INCLUDE_DIRS}
@@ -44,6 +47,20 @@ ament_auto_add_library(nebula_decoders_velodyne SHARED
 ament_auto_add_library(nebula_decoders_innovusion SHARED
         src/nebula_decoders_innovusion/decoders/innovusion_decoder.cpp
         src/nebula_decoders_innovusion/innovusion_driver.cpp
+        )
+
+# Robosense
+ament_auto_add_library(nebula_decoders_robosense SHARED
+        src/nebula_decoders_robosense/robosense_driver.cpp
+        )
+
+ament_auto_add_library(nebula_decoders_robosense_info SHARED
+        src/nebula_decoders_robosense/robosense_info_driver.cpp
+        )
+
+# Continental
+ament_auto_add_library(nebula_decoders_continental SHARED
+        src/nebula_decoders_continental/decoders/continental_ars548_decoder.cpp
         )
 
 if(BUILD_TESTING)

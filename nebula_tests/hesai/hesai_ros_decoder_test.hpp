@@ -35,11 +35,13 @@ struct HesaiRosDecoderTestParams
 {
   std::string sensor_model;
   std::string return_mode;
+  std::string calibration_file = "";
+  std::string bag_path;
+  std::string correction_file = "";
   std::string frame_id = "hesai";
   double scan_phase = 0.;
-  std::string calibration_file = "";
-  std::string correction_file = "";
-  std::string bag_path;
+  double min_range = 0.3;
+  double max_range = 300.;
   std::string storage_id = "sqlite3";
   std::string format = "cdr";
   std::string target_topic = "/pandar_packets";
@@ -108,7 +110,8 @@ public:
 
   /// @brief Read the specified bag file and compare the constructed point clouds with the
   /// corresponding PCD files
-  void ReadBag(std::function<void(uint64_t, uint64_t, nebula::drivers::NebulaPointCloudPtr)> scan_callback);
+  void ReadBag(
+    std::function<void(uint64_t, uint64_t, nebula::drivers::NebulaPointCloudPtr)> scan_callback);
 
   HesaiRosDecoderTestParams params_;
 };

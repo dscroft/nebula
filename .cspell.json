@@ -7,6 +7,7 @@
     "Adctp",
     "AT",
     "block_id",
+    "extrinsics",
     "gprmc",
     "Hesai",
     "memcpy",
@@ -30,6 +31,19 @@
     "vccint",
     "Vccint",
     "XT",
-    "XTM"
+    "XTM",
+    "DHAVE",
+    "Bpearl",
+    "Helios",
+    "Msop",
+    "Difop",
+    "gptp",
+    "Idat",
+    "Vdat",
+    "autosar",
+    "srvs",
+    "manc",
+    "ipaddr",
+    "ntoa"
   ]
 }
